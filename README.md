@@ -1,4 +1,4 @@
-# GoRaf Texture Converter
+# Rise and Fall: Civilization at war Texture Converter
 
 ## Supported formats
 
