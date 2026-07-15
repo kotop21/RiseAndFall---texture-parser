@@ -1,0 +1,51 @@
+version: '3'
+
+vars:
+  VERSION:
+    sh: git describe --tags --always --dirty 2>/dev/null || echo "dev"
+  LDFLAGS: "-X 'main.Version={{.VERSION}}' -s -w"
+
+tasks:
+  mkdir:
+    cmds:
+      - mkdir -p bin
+
+  run:
+    desc: "Run the converter"
+    cmds:
+      - go run . unpack
+
+  build:
+    desc: "Build the project for the current OS"
+    deps: [mkdir]
+    cmds:
+      - go build -ldflags="{{.LDFLAGS}}" -o bin/converter .
+
+  build-win:
+    desc: "Build the project for Windows (64-bit)"
+    deps: [mkdir]
+    cmds:
+      - CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="{{.LDFLAGS}}" -o bin/converter.exe .
+
+  build-mac:
+    desc: "Build the project for macOS (Apple Silicon)"
+    deps: [mkdir]
+    cmds:
+      - CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="{{.LDFLAGS}}" -o bin/converter-mac .
+
+  build-linux:
+    desc: "Build the project for Linux (64-bit)"
+    deps: [mkdir]
+    cmds:
+      - CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="{{.LDFLAGS}}" -o bin/converter-linux .
+
+  build-all:
+    desc: "Build binaries for all platforms"
+    cmds:
+      - task: build-win
+      - task: build-mac
+      - task: build-linux
+
+  default:
+    cmds:
+      - task: run

@@ -1,0 +1,6 @@
+github.com/ftrvxmtrx/tga v0.0.0-20150524081124-bd8e8d5be13a h1:eSqaRmdlZ9JsJ7JuWfDr3ym3monToXRczohBOL+heVQ=
+github.com/ftrvxmtrx/tga v0.0.0-20150524081124-bd8e8d5be13a/go.mod h1:US5WvgEHtG+BvWNNs6gk937h0QL2g2x+r7RH8m3g80Y=
+github.com/woozymasta/bcn v0.5.0 h1:xGv/n9K3lqv12dby/a9+es4JDZ2TdJqknyn+7ouypE0=
+github.com/woozymasta/bcn v0.5.0/go.mod h1:hD5uVT37krcNs/1wBB2FKtlwfDeNJY8qKh7TnqNF7Ig=
+golang.org/x/sys v0.46.0 h1:noSf2Fq6F8DBgS+LysIkx7rIExoNHJsxOAtPp4rthXw=
+golang.org/x/sys v0.46.0/go.mod h1:4GL1E5IUh+htKOUEOaiffhrAeqysfVGipDYzABqnCmw=

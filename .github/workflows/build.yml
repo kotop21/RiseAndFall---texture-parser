@@ -1,0 +1,104 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          - goos: windows
+            goarch: amd64
+            binary: converter.exe
+            archive: converter-windows-amd64.zip
+
+          - goos: linux
+            goarch: amd64
+            binary: converter-linux
+            archive: converter-linux-amd64.zip
+
+          - goos: darwin
+            goarch: arm64
+            binary: converter-mac
+            archive: converter-macos-arm64.zip
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build
+        run: |
+          mkdir -p dist
+
+          CGO_ENABLED=0 \
+          GOOS=${{ matrix.goos }} \
+          GOARCH=${{ matrix.goarch }} \
+          go build \
+          -ldflags="-s -w -X 'main.Version=${GITHUB_REF_NAME}'" \
+          -o dist/${{ matrix.binary }} \
+          .
+
+      - name: Prepare package
+        run: |
+          mkdir package
+
+          cp dist/${{ matrix.binary }} package/
+
+          mkdir package/1_original
+          mkdir package/2_editing
+          mkdir package/3_packed
+
+          cat > package/README.txt << 'EOF'
+          Supported formats:
+          - .tga
+          - .dds
+
+          Workflow:
+
+          1_original  - source textures
+          2_editing   - extracted png files
+          3_packed    - packed textures
+
+          Commands:
+          converter unpack
+          converter pack
+          EOF
+
+      - name: Add Windows scripts
+        if: matrix.goos == 'windows'
+        run: |
+          cat > package/unpack.bat << 'EOF'
+          @echo off
+          converter.exe unpack
+          pause
+          EOF
+
+          cat > package/pack.bat << 'EOF'
+          @echo off
+          converter.exe pack
+          pause
+          EOF
+
+      - name: Archive
+        run: |
+          cd package
+          zip -r ../${{ matrix.archive }} .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.archive }}
+          path: ${{ matrix.archive }}
