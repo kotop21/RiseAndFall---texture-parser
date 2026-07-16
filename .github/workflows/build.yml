@@ -18,17 +18,17 @@ jobs:
           - goos: windows
             goarch: amd64
             binary: converter.exe
-            archive: converter-windows-amd64.zip
+            archive: converter-windows-amd64
 
           - goos: linux
             goarch: amd64
             binary: converter-linux
-            archive: converter-linux-amd64.zip
+            archive: converter-linux-amd64
 
           - goos: darwin
             goarch: arm64
             binary: converter-mac
-            archive: converter-macos-arm64.zip
+            archive: converter-macos-arm64
 
     steps:
       - uses: actions/checkout@v4
@@ -88,16 +88,11 @@ jobs:
           pause
           EOF
 
-      - name: Archive Converter
-        run: |
-          cd package
-          zip -r ../${{ matrix.archive }} .
-
       - name: Upload Converter Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.archive }}
-          path: ${{ matrix.archive }}
+          path: package/
 
   build-matte-fixer:
     runs-on: ubuntu-latest
@@ -165,13 +160,8 @@ jobs:
           * **BC7_UNORM** - Advanced high-fidelity block compression with alpha. Excellent quality, but check game engine compatibility.
           EOF
 
-      - name: Archive Matte Fixer
-        run: |
-          cd package
-          zip -r ../matte-fixer-windows-amd64.zip .
-
       - name: Upload Matte Fixer Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: matte-fixer-windows-amd64.zip
-          path: matte-fixer-windows-amd64.zip
+          name: matte-fixer-windows-amd64
+          path: package/
