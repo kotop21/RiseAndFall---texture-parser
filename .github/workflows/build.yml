@@ -61,6 +61,7 @@ jobs:
           Supported formats:
           - .tga
           - .dds
+          - .sst
 
           Workflow:
 
