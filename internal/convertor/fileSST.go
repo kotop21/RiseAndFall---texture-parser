@@ -1,4 +1,4 @@
-package main
+package convertor
 
 import (
 	"bytes"
@@ -12,7 +12,7 @@ import (
 	"github.com/woozymasta/bcn"
 )
 
-func unpackSST(src, dst string) error {
+func UnpackSST(src, dst string) error {
 	data, err := os.ReadFile(src)
 	if err != nil {
 		return err
@@ -51,7 +51,7 @@ func unpackSST(src, dst string) error {
 	return os.WriteFile(dst, outBuf.Bytes(), 0644)
 }
 
-func packSST(src, dst string) error {
+func PackSST(src, dst string) error {
 	data, err := os.ReadFile(src)
 	if err != nil {
 		return err

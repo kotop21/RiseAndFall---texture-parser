@@ -1,4 +1,4 @@
-module github.com/kotop21/Raf-texture-converter
+module github.com/kotop21/Raf-texture-utils
 
 go 1.25.11
 

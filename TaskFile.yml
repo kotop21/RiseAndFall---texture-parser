@@ -13,31 +13,31 @@ tasks:
   run:
     desc: "Run the converter"
     cmds:
-      - go run . unpack
+      - go run ./cmd/convertor-core unpack
 
   build:
     desc: "Build the project for the current OS"
     deps: [mkdir]
     cmds:
-      - go build -ldflags="{{.LDFLAGS}}" -o bin/converter .
+      - go build -ldflags="{{.LDFLAGS}}" -o bin/converter ./cmd/convertor-core
 
   build-win:
     desc: "Build the project for Windows (64-bit)"
     deps: [mkdir]
     cmds:
-      - CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="{{.LDFLAGS}}" -o bin/converter.exe .
+      - CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="{{.LDFLAGS}}" -o bin/converter.exe ./cmd/convertor-core
 
   build-mac:
     desc: "Build the project for macOS (Apple Silicon)"
     deps: [mkdir]
     cmds:
-      - CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="{{.LDFLAGS}}" -o bin/converter-mac .
+      - CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="{{.LDFLAGS}}" -o bin/converter-mac ./cmd/convertor-core
 
   build-linux:
     desc: "Build the project for Linux (64-bit)"
     deps: [mkdir]
     cmds:
-      - CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="{{.LDFLAGS}}" -o bin/converter-linux .
+      - CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="{{.LDFLAGS}}" -o bin/converter-linux ./cmd/convertor-core
 
   build-all:
     desc: "Build binaries for all platforms"

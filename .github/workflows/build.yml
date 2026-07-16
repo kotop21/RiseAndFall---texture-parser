@@ -9,11 +9,9 @@ on:
       - main
   workflow_dispatch:
 
-
 jobs:
-  build:
+  build-converters:
     runs-on: ubuntu-latest
-
     strategy:
       matrix:
         include:
@@ -39,22 +37,20 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Build
+      - name: Build Converter
         run: |
           mkdir -p dist
-
           CGO_ENABLED=0 \
           GOOS=${{ matrix.goos }} \
           GOARCH=${{ matrix.goarch }} \
           go build \
           -ldflags="-s -w -X 'main.Version=${GITHUB_REF_NAME}'" \
           -o dist/${{ matrix.binary }} \
-          .
+          ./cmd/convertor-core
 
-      - name: Prepare package
+      - name: Prepare Package
         run: |
           mkdir package
-
           cp dist/${{ matrix.binary }} package/
 
           mkdir package/1_original
@@ -77,7 +73,7 @@ jobs:
           converter pack
           EOF
 
-      - name: Add Windows scripts
+      - name: Add Windows Scripts
         if: matrix.goos == 'windows'
         run: |
           cat > package/unpack.bat << 'EOF'
@@ -92,13 +88,90 @@ jobs:
           pause
           EOF
 
-      - name: Archive
+      - name: Archive Converter
         run: |
           cd package
           zip -r ../${{ matrix.archive }} .
 
-      - name: Upload artifact
+      - name: Upload Converter Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.archive }}
           path: ${{ matrix.archive }}
+
+  build-matte-fixer:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build Matte Fixer
+        run: |
+          mkdir -p dist
+          CGO_ENABLED=0 \
+          GOOS=windows \
+          GOARCH=amd64 \
+          go build \
+          -ldflags="-s -w -X 'main.Version=${GITHUB_REF_NAME}'" \
+          -o dist/matte-fixer.exe \
+          ./cmd/matte-fixer
+
+      - name: Download texconv.exe
+        run: |
+          mkdir -p dist/lib
+          curl -L -o dist/lib/texconv.exe https://github.com/microsoft/DirectXTex/releases/download/may2026/texconv.exe
+
+      - name: Prepare Matte Fixer Package
+        run: |
+          mkdir package
+          cp dist/matte-fixer.exe package/
+          mkdir package/lib
+          cp dist/lib/texconv.exe package/lib/
+
+          cat > package/README.md << 'EOF'
+          # Matte Fixer
+
+          Tool to fix terrain glossiness on normal maps and pack them into `.dds` (DXT5 + mipmaps).
+
+          ## Usage
+
+          ### 1. Drag & Drop (Default: 100% Matte, DXT5)
+          Drag and drop your edited `.png` (e.g., `ground_n.png`) onto `matte-fixer.exe`.
+
+          ### 2. Command Line
+          ```bash
+          matte-fixer.exe <file.png> [strength: 0-100] [format: BC3_UNORM]
+          ```
+          * **strength**: `100` = fully matte (default), `0` = original gloss.
+          * **format**: compression codec (default: `BC3_UNORM`).
+
+          #### Examples:
+          ```bash
+          matte-fixer.exe ground_n.png
+          matte-fixer.exe rock_n.png 80
+          matte-fixer.exe metal_n.png 100 BC7_UNORM
+          ```
+
+          ## Formats
+          * **BC1_UNORM** (DXT1) - No alpha channel. Max compression. Best for diffuse/color maps without transparency.
+          * **BC2_UNORM** (DXT3) - Sharp/explicit 4-bit alpha. Best for transparent cutouts with sharp edges.
+          * **BC3_UNORM** (DXT5) - Interpolated 8-bit alpha. Best for normal maps with smooth gloss layers or complex transparency.
+          * **BC4_UNORM** (ATI1) - One-channel compression (R-only). Best for grayscale heightmaps, bumpmaps, or gloss maps.
+          * **BC5_UNORM** (ATI2 / 3DC) - Two-channel compression (RG-only). Best for high-quality normal maps (Y-axis in G, X-axis in R).
+          * **BC6H_UF16** - High Dynamic Range (HDR) compression (unsigned 16-bit float). For skyboxes or lightmaps.
+          * **BC7_UNORM** - Advanced high-fidelity block compression with alpha. Excellent quality, but check game engine compatibility.
+          EOF
+
+      - name: Archive Matte Fixer
+        run: |
+          cd package
+          zip -r ../matte-fixer-windows-amd64.zip .
+
+      - name: Upload Matte Fixer Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: matte-fixer-windows-amd64.zip
+          path: matte-fixer-windows-amd64.zip

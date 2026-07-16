@@ -1,20 +1,20 @@
-package main
+package convertor
 
 import (
 	"bytes"
 	"image/png"
 	"os"
 
-	"github.com/ftrvxmtrx/tga"
+	"github.com/woozymasta/bcn"
 )
 
-func unpackTGA(src, dst string) error {
+func UnpackDDS(src, dst string) error {
 	data, err := os.ReadFile(src)
 	if err != nil {
 		return err
 	}
 
-	img, err := tga.Decode(bytes.NewReader(data))
+	_, img, err := bcn.DecodeDDS(bytes.NewReader(data))
 	if err != nil {
 		return err
 	}
@@ -27,7 +27,7 @@ func unpackTGA(src, dst string) error {
 	return os.WriteFile(dst, buf.Bytes(), 0644)
 }
 
-func packTGA(src, dst string) error {
+func PackDDS(src, dst string) error {
 	data, err := os.ReadFile(src)
 	if err != nil {
 		return err
@@ -38,8 +38,13 @@ func packTGA(src, dst string) error {
 		return err
 	}
 
+	tex, err := bcn.EncodeDDS(img, bcn.FormatDXT5)
+	if err != nil {
+		return err
+	}
+
 	var buf bytes.Buffer
-	if err := tga.Encode(&buf, img); err != nil {
+	if err := tex.Write(&buf); err != nil {
 		return err
 	}
 
