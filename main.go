@@ -2,13 +2,12 @@ package main
 
 import (
 	"fmt"
-	"image/png"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"sync"
 
-	"github.com/ftrvxmtrx/tga"
-	"github.com/woozymasta/bcn"
 	_ "github.com/woozymasta/bcn/dds"
 )
 
@@ -20,12 +19,16 @@ const (
 	packedDir   = "3_packed"
 )
 
+type job struct {
+	src  string
+	dst  string
+	name string
+	ext  string
+}
+
 func main() {
 	if len(os.Args) == 1 {
-		_ = os.MkdirAll(originalDir, 0755)
-		_ = os.MkdirAll(editingDir, 0755)
-		_ = os.MkdirAll(packedDir, 0755)
-
+		setupDirs()
 		fmt.Println("Command unpack/pack: `./converter.exe pack`")
 		fmt.Println("Created:")
 		fmt.Println(" -", originalDir)
@@ -38,25 +41,17 @@ func main() {
 
 	switch mode {
 	case "unpack":
-		_ = os.MkdirAll(originalDir, 0755)
-		_ = os.MkdirAll(editingDir, 0755)
-		_ = os.MkdirAll(packedDir, 0755)
-
+		setupDirs()
 		if err := unpack(); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-
 	case "pack":
-		_ = os.MkdirAll(originalDir, 0755)
-		_ = os.MkdirAll(editingDir, 0755)
-		_ = os.MkdirAll(packedDir, 0755)
-
+		setupDirs()
 		if err := pack(); err != nil {
 			fmt.Println(err)
 			os.Exit(1)
 		}
-
 	default:
 		fmt.Println("converter")
 		fmt.Println("converter unpack")
@@ -64,10 +59,77 @@ func main() {
 	}
 }
 
+func setupDirs() {
+	_ = os.MkdirAll(originalDir, 0755)
+	_ = os.MkdirAll(editingDir, 0755)
+	_ = os.MkdirAll(packedDir, 0755)
+}
+
+func getWorkerCount(entries []os.DirEntry) int {
+	var maxSize int64
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+		info, err := entry.Info()
+		if err == nil && info.Size() > maxSize {
+			maxSize = info.Size()
+		}
+	}
+
+	cpus := runtime.NumCPU()
+
+	if maxSize > 50*1024*1024 {
+		if cpus > 4 {
+			return 2
+		}
+		return 1
+	}
+	if maxSize > 15*1024*1024 {
+		w := cpus / 2
+		if w < 1 {
+			return 1
+		}
+		return w
+	}
+	return cpus
+}
+
 func unpack() error {
 	entries, err := os.ReadDir(originalDir)
 	if err != nil {
 		return err
+	}
+
+	workers := getWorkerCount(entries)
+	fmt.Printf("[Info] Using %d workers for unpacking\n", workers)
+
+	jobs := make(chan job, len(entries))
+	var wg sync.WaitGroup
+
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := range jobs {
+				fmt.Printf("[Unpack] Started: %s\n", j.name)
+				var err error
+				switch j.ext {
+				case ".tga":
+					err = unpackTGA(j.src, j.dst)
+				case ".dds":
+					err = unpackDDS(j.src, j.dst)
+				case ".sst":
+					err = unpackSST(j.src, j.dst)
+				}
+
+				if err != nil {
+					fmt.Printf("[Error] %s: %v\n", j.name, err)
+				} else {
+					fmt.Printf("[Unpack] Done: %s\n", j.name)
+				}
+			}
+		}()
 	}
 
 	for _, entry := range entries {
@@ -77,21 +139,16 @@ func unpack() error {
 
 		name := entry.Name()
 		ext := strings.ToLower(filepath.Ext(name))
+		if ext != ".tga" && ext != ".dds" && ext != ".sst" {
+			continue
+		}
 
 		src := filepath.Join(originalDir, name)
 		dst := filepath.Join(editingDir, name+".png")
-
-		switch ext {
-		case ".tga":
-			if err := unpackTGA(src, dst); err != nil {
-				fmt.Printf("%s: %v\n", name, err)
-			}
-		case ".dds":
-			if err := unpackDDS(src, dst); err != nil {
-				fmt.Printf("%s: %v\n", name, err)
-			}
-		}
+		jobs <- job{src: src, dst: dst, name: name, ext: ext}
 	}
+	close(jobs)
+	wg.Wait()
 
 	return nil
 }
@@ -100,6 +157,37 @@ func pack() error {
 	entries, err := os.ReadDir(editingDir)
 	if err != nil {
 		return err
+	}
+
+	workers := getWorkerCount(entries)
+	fmt.Printf("[Info] Using %d workers for packing\n", workers)
+
+	jobs := make(chan job, len(entries))
+	var wg sync.WaitGroup
+
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := range jobs {
+				fmt.Printf("[Pack] Started: %s\n", j.name)
+				var err error
+				switch j.ext {
+				case ".tga":
+					err = packTGA(j.src, j.dst)
+				case ".dds":
+					err = packDDS(j.src, j.dst)
+				case ".sst":
+					err = packSST(j.src, j.dst)
+				}
+
+				if err != nil {
+					fmt.Printf("[Error] %s: %v\n", j.name, err)
+				} else {
+					fmt.Printf("[Pack] Done: %s\n", j.name)
+				}
+			}
+		}()
 	}
 
 	for _, entry := range entries {
@@ -114,110 +202,16 @@ func pack() error {
 
 		base := strings.TrimSuffix(name, ".png")
 		ext := strings.ToLower(filepath.Ext(base))
+		if ext != ".tga" && ext != ".dds" && ext != ".sst" {
+			continue
+		}
 
 		src := filepath.Join(editingDir, name)
 		dst := filepath.Join(packedDir, base)
-
-		switch ext {
-		case ".tga":
-			if err := packTGA(src, dst); err != nil {
-				fmt.Printf("%s: %v\n", name, err)
-			}
-		case ".dds":
-			if err := packDDS(src, dst); err != nil {
-				fmt.Printf("%s: %v\n", name, err)
-			}
-		}
+		jobs <- job{src: src, dst: dst, name: name, ext: ext}
 	}
+	close(jobs)
+	wg.Wait()
 
 	return nil
-}
-
-func unpackTGA(src, dst string) error {
-	f, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	img, err := tga.Decode(f)
-	if err != nil {
-		return err
-	}
-
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	return png.Encode(out, img)
-}
-
-func packTGA(src, dst string) error {
-	f, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	img, err := png.Decode(f)
-	if err != nil {
-		return err
-	}
-
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	return tga.Encode(out, img)
-}
-
-func unpackDDS(src, dst string) error {
-	f, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	_, img, err := bcn.DecodeDDS(f)
-	if err != nil {
-		return err
-	}
-
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	return png.Encode(out, img)
-}
-
-func packDDS(src, dst string) error {
-	f, err := os.Open(src)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-
-	img, err := png.Decode(f)
-	if err != nil {
-		return err
-	}
-
-	tex, err := bcn.EncodeDDS(img, bcn.FormatDXT5)
-	if err != nil {
-		return err
-	}
-
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	return tex.Write(out)
 }
