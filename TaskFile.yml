@@ -15,36 +15,48 @@ tasks:
     cmds:
       - go run ./cmd/convertor-core unpack
 
-  build:
-    desc: "Build the project for the current OS"
+  build-converter:
+    desc: "Build only the converter for the current OS"
     deps: [mkdir]
     cmds:
       - go build -ldflags="{{.LDFLAGS}}" -o bin/converter ./cmd/convertor-core
 
-  build-win:
-    desc: "Build the project for Windows (64-bit)"
+  build-converter-win:
+    desc: "Build converter for Windows (64-bit)"
     deps: [mkdir]
     cmds:
       - CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="{{.LDFLAGS}}" -o bin/converter.exe ./cmd/convertor-core
 
-  build-mac:
-    desc: "Build the project for macOS (Apple Silicon)"
+  build-converter-mac:
+    desc: "Build converter for macOS (Apple Silicon)"
     deps: [mkdir]
     cmds:
       - CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="{{.LDFLAGS}}" -o bin/converter-mac ./cmd/convertor-core
 
-  build-linux:
-    desc: "Build the project for Linux (64-bit)"
+  build-converter-linux:
+    desc: "Build converter for Linux (64-bit)"
     deps: [mkdir]
     cmds:
       - CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="{{.LDFLAGS}}" -o bin/converter-linux ./cmd/convertor-core
 
-  build-all:
-    desc: "Build binaries for all platforms"
+  build-fixer-win:
+    desc: "Build matte-fixer only for Windows"
+    deps: [mkdir]
     cmds:
-      - task: build-win
-      - task: build-mac
-      - task: build-linux
+      - CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="{{.LDFLAGS}}" -o bin/matte-fixer.exe ./cmd/matte-fixer
+
+  build:
+    desc: "Build current OS binaries"
+    cmds:
+      - task: build-converter
+
+  build-all:
+    desc: "Build all binaries for all platforms"
+    cmds:
+      - task: build-converter-win
+      - task: build-converter-mac
+      - task: build-converter-linux
+      - task: build-fixer-win
 
   default:
     cmds:
