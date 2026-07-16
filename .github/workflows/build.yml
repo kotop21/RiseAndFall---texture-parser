@@ -46,7 +46,7 @@ jobs:
           go build \
           -ldflags="-s -w -X 'main.Version=${GITHUB_REF_NAME}'" \
           -o dist/${{ matrix.binary }} \
-          ./cmd/convertor-core
+          ./cmd/convertor
 
       - name: Prepare Package
         run: |
