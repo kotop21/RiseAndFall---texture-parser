@@ -1,4 +1,4 @@
-module github.com/kotop21/Raf-texture-utils
+module github.com/kotop21/Raf-assets-utiling
 
 go 1.25.11
 

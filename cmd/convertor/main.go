@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"strings"
+
+	"github.com/kotop21/Raf-assets-utiling/internal/convertor"
 )
 
 var Version = "dev"
