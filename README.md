@@ -1,28 +1,82 @@
-# Rise and Fall: Civilization at war Texture Converter
+<div align="center">
 
-## Supported formats
+# Rise And Fall: Civilization at War Asset Utilities
 
-* `.tga`
-* `.dds`
+A collection of utilities for working with **Rise And Fall: Civilization at War** assets.
 
-## Folder structure
+[![Go Version](https://img.shields.io/badge/Go-1.25.11-00ADD8?logo=go&logoColor=white)](https://go.dev/)
 
-* `1_original` — source textures
-* `2_editing` — extracted PNG files
-* `3_packed` — packed textures
+</div>
 
-## Commands
+The project uses a **Taskfile** to simplify cross-platform builds for **Windows**, **Linux**, and **macOS**.
 
-Extract textures:
+## Build
 
-```bash
-converter unpack
-```
-
-Pack textures:
+Build every tool at once:
 
 ```bash
-converter pack
+task build-all
 ```
 
-Running the program without arguments creates the required folder structure automatically.
+---
+
+## Texture Converter
+
+Convert, unpack, and repack game texture formats.
+
+### Supported Input Formats
+
+- `.dds`
+- `.tga`
+- `.sst`
+
+### Supported Output Formats
+
+#### Unpacking
+
+- `.png`
+
+#### Packing
+
+- Same format as the original texture (`.dds`, `.tga`, or `.sst`)
+
+### Folder Structure
+
+```text
+1_original/    Original game textures
+2_editing/     Extracted PNG files for editing
+3_packed/      Repacked textures
+```
+
+Running the executable **without arguments** automatically creates this folder structure.
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `converter unpack` | Extract textures to PNG |
+| `converter pack` | Pack edited PNG files back into the original format |
+
+---
+
+## Matte Builder
+
+Generate game-ready texture maps from source images.
+
+### Supported Input Formats
+
+- `.png`
+- `.jpg`
+- `.jpeg`
+
+### Supported Output Format
+
+- `.png`
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `matte-builder diffuse.png ao.png normal.png specular.png` | Generate a diffuse texture and a normal/bump texture |
+| `matte-builder --diffuse diffuse.png ao.png` | Bake the ambient occlusion map into the diffuse texture |
+| `matte-builder --normal normal.png specular.png` | Pack the specular map into the normal map alpha channel |
