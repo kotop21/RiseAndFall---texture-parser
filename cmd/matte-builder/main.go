@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	mattebuilder "github.com/kotop21/Raf-texture-utils/internal/matte-builder"
+	"github.com/kotop21/Raf-texture-utils/internal/matte-builder"
 )
 
 func main() {

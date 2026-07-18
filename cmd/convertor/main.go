@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"strings"
-
-	"github.com/kotop21/Raf-texture-utils/internal/convertor"
 )
 
 var Version = "dev"

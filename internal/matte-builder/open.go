@@ -1,6 +1,7 @@
 package mattebuilder
 
 import (
+	"bytes"
 	"image"
 	"image/jpeg"
 	"image/png"
@@ -9,21 +10,23 @@ import (
 )
 
 func OpenImage(path string) (image.Image, error) {
-	file, err := os.Open(path)
+	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
 
 	ext := filepath.Ext(path)
 	var img image.Image
+	reader := bytes.NewReader(data)
+
 	if ext == ".jpg" || ext == ".jpeg" {
-		img, err = jpeg.Decode(file)
+		img, err = jpeg.Decode(reader)
 	} else {
-		img, err = png.Decode(file)
+		img, err = png.Decode(reader)
 	}
 	if err != nil {
 		return nil, err
 	}
+
 	return img, nil
 }
