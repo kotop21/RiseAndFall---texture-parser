@@ -64,7 +64,6 @@ jobs:
           - .sst
 
           Workflow:
-
           1_original  - source textures
           2_editing   - extracted png files
           3_packed    - packed textures
@@ -95,8 +94,26 @@ jobs:
           name: ${{ matrix.archive }}
           path: package/
 
-  build-matte-fixer:
+  build-matte-builders:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - goos: windows
+            goarch: amd64
+            binary: matte-builder.exe
+            archive: matte-builder-windows-amd64
+
+          - goos: linux
+            goarch: amd64
+            binary: matte-builder-linux
+            archive: matte-builder-linux-amd64
+
+          - goos: darwin
+            goarch: arm64
+            binary: matte-builder-mac
+            archive: matte-builder-macos-arm64
+
     steps:
       - uses: actions/checkout@v4
 
@@ -104,65 +121,45 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Build Matte Fixer
+      - name: Build Matte Builder
         run: |
           mkdir -p dist
           CGO_ENABLED=0 \
-          GOOS=windows \
-          GOARCH=amd64 \
+          GOOS=${{ matrix.goos }} \
+          GOARCH=${{ matrix.goarch }} \
           go build \
           -ldflags="-s -w -X 'main.Version=${GITHUB_REF_NAME}'" \
-          -o dist/matte-fixer.exe \
-          ./cmd/matte-fixer
+          -o dist/${{ matrix.binary }} \
+          ./cmd/matte-builder
 
-      - name: Download texconv.exe
-        run: |
-          mkdir -p dist/lib
-          curl -L -o dist/lib/texconv.exe https://github.com/microsoft/DirectXTex/releases/download/may2026/texconv.exe
-
-      - name: Prepare Matte Fixer Package
+      - name: Prepare Package
         run: |
           mkdir package
-          cp dist/matte-fixer.exe package/
-          mkdir package/lib
-          cp dist/lib/texconv.exe package/lib/
+          cp dist/${{ matrix.binary }} package/
 
-          cat > package/README.md << 'EOF'
-          # Matte Fixer
+          cat > package/README.txt << 'EOF'
+          Matte Builder
 
-          Tool to fix terrain glossiness on normal maps and pack them into `.dds` (DXT5 + mipmaps).
+          Supported Input Formats:
+          - .png, .jpg, .jpeg
 
-          ## Usage
+          Output Format:
+          - Always outputs .png files
 
-          ### 1. Drag & Drop (Default: 100% Matte, DXT5)
-          Drag and drop your edited `.png` (e.g., `ground_n.png`) onto `matte-fixer.exe`.
+          Commands:
 
-          ### 2. Command Line
-          ```bash
-          matte-fixer.exe <file.png> [strength: 0-100] [format: BC3_UNORM]
-          ```
-          * **strength**: `100` = fully matte (default), `0` = original gloss.
-          * **format**: compression codec (default: `BC3_UNORM`).
+          Full mode (generates <diffuse>.png and <normal>_bump.png):
+          matte-builder <diffuse> <ao> <normal> <specular>
 
-          #### Examples:
-          ```bash
-          matte-fixer.exe ground_n.png
-          matte-fixer.exe rock_n.png 80
-          matte-fixer.exe metal_n.png 100 BC7_UNORM
-          ```
+          Diffuse & AO only (generates <diffuse>.png with baked AO):
+          matte-builder --diffuse <diffuse> <ao>
 
-          ## Formats
-          * **BC1_UNORM** (DXT1) - No alpha channel. Max compression. Best for diffuse/color maps without transparency.
-          * **BC2_UNORM** (DXT3) - Sharp/explicit 4-bit alpha. Best for transparent cutouts with sharp edges.
-          * **BC3_UNORM** (DXT5) - Interpolated 8-bit alpha. Best for normal maps with smooth gloss layers or complex transparency.
-          * **BC4_UNORM** (ATI1) - One-channel compression (R-only). Best for grayscale heightmaps, bumpmaps, or gloss maps.
-          * **BC5_UNORM** (ATI2 / 3DC) - Two-channel compression (RG-only). Best for high-quality normal maps (Y-axis in G, X-axis in R).
-          * **BC6H_UF16** - High Dynamic Range (HDR) compression (unsigned 16-bit float). For skyboxes or lightmaps.
-          * **BC7_UNORM** - Advanced high-fidelity block compression with alpha. Excellent quality, but check game engine compatibility.
+          Normal & Specular only (generates <normal>_bump.png with packed Specular):
+          matte-builder --normal <normal> <specular>
           EOF
 
-      - name: Upload Matte Fixer Artifact
+      - name: Upload Matte Builder Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: matte-fixer-windows-amd64
+          name: ${{ matrix.archive }}
           path: package/

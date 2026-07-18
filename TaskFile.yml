@@ -39,11 +39,23 @@ tasks:
     cmds:
       - CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="{{.LDFLAGS}}" -o bin/converter-linux ./cmd/convertor
 
-  build-fixer-win:
-    desc: "Build matte-fixer only for Windows"
+  build-matte-builder-win:
+    desc: "Build matte-builder for Windows (64-bit)"
     deps: [mkdir]
     cmds:
-      - CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="{{.LDFLAGS}}" -o bin/matte-fixer.exe ./cmd/matte-fixer
+      - CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="{{.LDFLAGS}}" -o bin/matte-builder.exe ./cmd/matte-builder
+
+  build-matte-builder-mac:
+    desc: "Build matte-builder for macOS (Apple Silicon)"
+    deps: [mkdir]
+    cmds:
+      - CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="{{.LDFLAGS}}" -o bin/matte-builder-mac ./cmd/matte-builder
+
+  build-matte-builder-linux:
+    desc: "Build matte-builder for Linux (64-bit)"
+    deps: [mkdir]
+    cmds:
+      - CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="{{.LDFLAGS}}" -o bin/matte-builder-linux ./cmd/matte-builder
 
   build:
     desc: "Build current OS binaries"
@@ -56,7 +68,9 @@ tasks:
       - task: build-converter-win
       - task: build-converter-mac
       - task: build-converter-linux
-      - task: build-fixer-win
+      - task: build-matte-builder-win
+      - task: build-matte-builder-mac
+      - task: build-matte-builder-linux
 
   default:
     cmds:
